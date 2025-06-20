@@ -7,7 +7,8 @@ export type ContentType =
   | "linkedin_post"
   | "reddit_comment"
   | "book"
-  | "other";
+  | "other"
+  | "pdf";
 
 export interface KnowledgeItem {
   title: string;

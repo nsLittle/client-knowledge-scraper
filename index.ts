@@ -1,11 +1,9 @@
-// index.ts
-
 import fs from "fs-extra";
 import path from "path";
 import { PlaywrightScraper } from "./scrapers/PlaywrightScraper";
 import { KnowledgeBase, KnowledgeItem } from "./types.js";
-import { clear } from "console";
-clear;
+import { PDFParser } from "./scrapers/PDFParser";
+
 const team_id = "aline123";
 
 async function main() {
@@ -13,15 +11,32 @@ async function main() {
   const items: KnowledgeItem[] = [];
 
   for (const input of args) {
-    if (input.endsWith(".pdf")) {
-      const parsed = await PlaywrightScraper.parse(input);
-      items.push(...parsed);
-    } else if (input.startsWith("http")) {
-      const parsed = await PlaywrightScraper.parse(input);
+    const fullPath = path.resolve(input);
 
+    // If input is a directory, collect all PDFs inside it
+    if (fs.statSync(fullPath).isDirectory()) {
+      const files = fs.readdirSync(fullPath);
+      const pdfFiles = files.filter((f) => f.toLowerCase().endsWith(".pdf"));
+
+      for (const file of pdfFiles) {
+        const filePath = path.join(fullPath, file);
+        const parsed = await PDFParser.parse(filePath);
+        items.push(...parsed);
+      }
+    }
+    // If input is a URL
+    else if (input.startsWith("http")) {
+      const parsed = await PlaywrightScraper.parse(input);
       items.push(...parsed);
-    } else {
-      console.warn(`Skipping unsupported input: ${input}`);
+    }
+    // If input is a single PDF file
+    else if (input.toLowerCase().endsWith(".pdf")) {
+      const parsed = await PDFParser.parse(fullPath);
+      items.push(...parsed);
+    }
+    // Skip unsupported input
+    else {
+      console.warn(`⚠️ Skipping unsupported input: ${input}`);
     }
   }
 

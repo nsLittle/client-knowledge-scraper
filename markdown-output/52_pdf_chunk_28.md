@@ -1,0 +1,3 @@
+# PDF Chunk 28
+
+and target the right people, you’ll have a much better hit rate than when you apply online, but you will still get ghosted a lot, and it will sting much more because, this time, you actually tried. But you know what? If you stick with it and do this right, within a few months, you’ll have a connection to a top-tier company. With your mindset ready, it’s time to dive in and do the work. If you follow our advice, you’ll get an order of magnitude more responses than from applying online, and with this approach, you’ll have at least a hiring manager at that company rooting for you!

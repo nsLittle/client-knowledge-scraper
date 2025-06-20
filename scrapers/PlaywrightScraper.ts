@@ -42,9 +42,14 @@ export class PlaywrightScraper {
     console.log(`📚 Found ${filteredLinks.length} content links.`);
 
     const items: KnowledgeItem[] = [];
-    for (const link of filteredLinks) {
-      const item = await this.scrapeArticle(browser, link);
-      if (item) items.push(item);
+    if (filteredLinks.length > 0) {
+      for (const link of filteredLinks) {
+        const item = await this.scrapeArticle(browser, link);
+        if (item) items.push(item);
+      }
+    } else {
+      const fallbackItems = await this.clickAndScrapeCards(page, url);
+      items.push(...fallbackItems);
     }
 
     await browser.close();
@@ -61,7 +66,10 @@ export class PlaywrightScraper {
       await page.goto(url, { waitUntil: "domcontentloaded" });
 
       const title = await page.title();
-      const bodyHtml = await page.$eval("body", (el) => el.innerHTML);
+      const bodyHtml = await page.$eval(
+        "body",
+        (el: HTMLElement) => el.innerHTML
+      );
       const markdown = turndown.turndown(bodyHtml);
 
       return {
@@ -78,5 +86,57 @@ export class PlaywrightScraper {
     } finally {
       await page.close();
     }
+  }
+
+  static async clickAndScrapeCards(
+    page: any,
+    baseUrl: string
+  ): Promise<KnowledgeItem[]> {
+    const items: KnowledgeItem[] = [];
+
+    const cards = await page.$$(
+      'article, .card, .post-preview, .blog-card, div[data-clickable="true"]'
+    );
+    console.log(
+      `🃏 No direct links found — trying ${cards.length} clickable content cards.`
+    );
+
+    for (let i = 0; i < cards.length; i++) {
+      try {
+        console.log(`➡️ Clicking card ${i + 1}/${cards.length}`);
+        const [newPage] = await Promise.all([
+          page.context().waitForEvent("page"),
+          cards[i].click(),
+        ]);
+
+        await newPage.waitForLoadState("domcontentloaded");
+
+        const title = await newPage.title();
+        const html = await newPage.$eval(
+          "body",
+          (el: HTMLElement) => el.innerHTML
+        );
+
+        const markdown = new TurndownService().turndown(html);
+
+        items.push({
+          title: title || "Untitled",
+          content: markdown,
+          content_type: "blog",
+          source_url: newPage.url(),
+          author: "",
+          user_id: "",
+        });
+
+        await newPage.close();
+      } catch (err: any) {
+        console.warn(
+          `⚠️ Failed to click or scrape card ${i + 1}:`,
+          err.message || err
+        );
+      }
+    }
+
+    return items;
   }
 }
